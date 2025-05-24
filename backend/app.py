@@ -176,8 +176,6 @@ async def chat(request: ChatRequest) -> Dict[str, Any]:
     # 2) Otherwise, fall back to LLM with a clear system prompt
     summary = sess.get("filtered_info", "")
     history = sess.setdefault("history", [])
-    
-    print(metrics)
 
     system_prompt = (
         "You are a UAV log analyst.\n"
