@@ -64,7 +64,7 @@ Backend (FastAPI)
    ```
 4. Start the FastAPI server:
    ```bash
-   uvicorn app:app --reload --port 8000
+   python -m uvicorn app:app --reload --host 0.0.0.0 --port 8000
    ```
 
 ## Endpoints
