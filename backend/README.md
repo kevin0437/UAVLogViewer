@@ -38,6 +38,13 @@ Backend (FastAPI)
 - Node.js ≥14 and npm/yarn
 - Python 3.9+ and virtualenv
 - OpenAI API key
+## Frontend Setup
+
+    ```bash
+    npm install
+    # serve with hot reload at localhost:8080
+    npm run dev
+    ```
 
 ## Backend Setup
 
