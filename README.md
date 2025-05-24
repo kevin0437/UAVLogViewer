@@ -45,8 +45,10 @@ Backend (FastAPI)
 - Node.js ≥14 and npm/yarn
 - Python 3.9+ and virtualenv
 - OpenAI API key
+  
 ## Frontend Setup
-
+    You should first go to config/dev.env.js and add your CESIUM_ION_ACCESS_TOKEN
+    
     ```bash
     npm install
     # serve with hot reload at localhost:8080
