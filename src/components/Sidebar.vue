@@ -31,6 +31,24 @@
                 <div :style="{display: selected==='plot' ? '' : 'none' }">
                     <plotSetup/>
                     <message-menu/>
+                    <!-- Chat panel -->
+                    <div v-if="sessionId" class="chat-container">
+                        <div class="messages">
+                        <div
+                            v-for="(m,i) in chatHistory"
+                            :key="i"
+                            :class="m.from==='user'?'msg user':'msg bot'">
+                            {{ m.text }}
+                        </div>
+                        </div>
+                        <div class="input-row">
+                        <input
+                            v-model="userMessage"
+                            @keyup.enter="sendMessage"
+                            placeholder="Ask about your flight…" />
+                        <button @click="sendMessage">Send</button>
+                        </div>
+                    </div>
                 </div>
                 <div v-if="selected==='home'">
                     <Dropzone/>
@@ -146,7 +164,10 @@ export default {
             recorder: null,
             stream: null,
             downloadURL: '',
-            fileName: 'video.mp4'
+            fileName: 'video.mp4',
+            sessionId: null,     // set when Dropzone emits
+            chatHistory: [],     // records of {from, text}
+            userMessage: ''      // bound to the input box
         }
     },
     methods: {
@@ -215,16 +236,53 @@ export default {
 
         downloadFile (filename) {
             this.downloadBlob(this.state.files[filename], filename, 'application/octet-stream')
-        }
+        },
+
+        async askBot (text) {
+        const resp = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                session_id: this.sessionId,
+                message: text
+            })
+        })
+        const { reply } = await resp.json()
+        return reply
+        },
+
+        async sendMessage () {
+            if (!this.userMessage) return
+            this.chatHistory.push({ from: 'user', text: this.userMessage })
+            const text = this.userMessage
+            this.userMessage = ''
+            try {
+                const botReply = await this.askBot(text)
+                this.chatHistory.push({ from: 'bot', text: botReply })
+            } catch (err) {
+                console.error(err)
+                this.chatHistory.push({ from: 'bot', text: 'Error, try again.' })
+            }
+        },
     },
-    created () {
-        this.$eventHub.$on('set-selected', this.setSelected)
+    created() {
+    this.$eventHub.$on('sessionStarted', id => {
+        this.sessionId   = id
+        this.chatHistory = []
+        this.userMessage = ''
+        this.selected    = 'plot'    // switch to Plot tab
+    })
+    },
+    beforeDestroy() {
+    this.$eventHub.$off('sessionStarted')
     },
     watch: {
         blob () {
             this.downloadURL = URL.createObjectURL(this.blob)
         }
     },
+    
+
     components: {PlotSetup, MessageMenu, Dropzone}
 }
 </script>
@@ -592,4 +650,52 @@ a.centered-section {
         margin-left: 40%;
 
     }
+    .chat-container {
+  margin-top: 1rem;
+  border: 1px solid #555;
+  background: #222;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  height: 500px;
+  padding: 8px;
+}
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+.msg {
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin: 2px 0;
+}
+.msg.user {
+  background: #0055aa;
+  align-self: flex-end;
+}
+.msg.bot {
+  background: #333;
+  align-self: flex-start;
+}
+.input-row {
+  display: flex;
+}
+.input-row input {
+  flex: 1;
+  padding: 6px;
+  background: #111;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #fff;
+  margin-right: 4px;
+}
+.input-row button {
+  padding: 6px 12px;
+  background: #0088ff;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+}
+
 </style>

@@ -23,6 +23,11 @@ module.exports = {
         target:"http://localhost:8001/uploaded",
         secure:"false"
       },
+      "/api":{
+        target: 'http://localhost:8000',
+        secure:"false",
+        pathRewrite: { '^/api': '' },
+      },
     },
 
     // Various Dev Server settings

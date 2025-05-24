@@ -28,6 +28,7 @@
     </div>
 </template>
 <script>
+
 import VProgress from './SideBarFileManagerProgressBar.vue'
 import Worker from '../tools/parsers/parser.worker.js'
 import { store } from './Globals'
@@ -225,6 +226,25 @@ export default {
             a.click()
             document.body.removeChild(a)
             window.URL.revokeObjectURL(url)
+        },
+        async uploadParsedData () {
+            try {
+                const resp = await fetch('/api/upload_log', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(this.state.messages)
+                })
+                const {
+                    session_id: sessionId
+                } = await resp.json()
+                this.sessionId = sessionId
+                this.$eventHub.$emit('sessionStarted', sessionId)
+                console.log('Backend session:', sessionId)
+            } catch (err) {
+                console.error('uploadParsedData error:', err)
+            }
         }
     },
     mounted () {
@@ -246,10 +266,13 @@ export default {
             } else if (event.data.metadata) {
                 this.state.metadata = event.data.metadata
             } else if (event.data.messages) {
+                console.log(Object.keys(event.data.messages))
                 this.state.messages = event.data.messages
                 this.$eventHub.$emit('messages')
             } else if (event.data.messagesDoneLoading) {
                 this.$eventHub.$emit('messagesDoneLoading')
+                this.$eventHub.$emit('messagesDoneLoading')
+                this.uploadParsedData()
             } else if (event.data.messageType) {
                 this.state.messages[event.data.messageType] = event.data.messageList
                 this.$eventHub.$emit('messages')

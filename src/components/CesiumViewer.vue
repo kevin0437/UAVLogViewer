@@ -84,9 +84,7 @@ import {
     isPointInPolygon
 } from './cesiumExtra/boundingPolygon.js'
 
-Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwMTIzNmJhM' +
-    'y1jNDE3LTQ0MzAtODVkMS1mZmUzODdjMTg0MGIiLCJpZCI6MzAzNjYzLCJpYXQiOjE3NDc2MjEzOTR9.Eu' +
-    'W7FIgBv2OzYDyy0xfCWiExKyLIK9S4qJoT4D5-qrM'
+Ion.defaultAccessToken = process.env.CESIUM_ION_ACCESS_TOKEN
 
 const colorCoderMode = new ColorCoderMode(store)
 const colorCoderRange = new ColorCoderRange(store)

@@ -1,7 +1,7 @@
 import { ParamSeeker } from '../tools/paramseeker'
 import extractStartTime from './datetools'
 
-window.radians = function (a) {
+globalThis.radians = function (a) {
     return 0.0174533 * a
 }
 
