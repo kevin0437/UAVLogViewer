@@ -70,7 +70,7 @@ Backend (FastAPI)
 ## Endpoints
 
 - **`GET /health`** — Returns `{"status":"ok"}`
-- **`POST /upload_log`** — Accepts full telemetry JSON; returns `{ session_id, summary }`
+- **`POST /upload_log`** — Accepts full telemetry JSON; returns `{ session_id, filtered_info }`
 - **`POST /chat`** — Accepts `{ session_id, message }`; returns `{ reply }`
 
 ## Usage
@@ -106,6 +106,4 @@ Backend (FastAPI)
 | MAVLink   | `RC_CHANNELS_RAW.rssi`             | `rc_signal_strength`   |
 | MAVLink   | `STATUSTEXT.text`                  | `status_texts`         |
 
-## License
 
-MIT License © Your Name
