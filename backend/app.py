@@ -151,14 +151,46 @@ async def upload_log(
     filtered_text = json.dumps(filtered, indent=2)
     session_id = new_session(filtered)
     sess = get_session(session_id)
-    sess["filtered"] = filtered
+    
+    #sess["filtered"] = filtered
+    
     sess.setdefault("history", [])
     metrics,filtered_info = compute_metrics(filtered)
+    #sess["metrics"] = metrics
+    #sess["filtered_info"] = filtered_info
     
-    sess["metrics"] = metrics
-    sess["filtered_info"] = filtered_info
+    print(filtered_info,metrics)
+    system_prompt = f"""
+                    You are an expert UAV telemetry analyst. I will provide you with two inputs:
+                    1) `filtered_info`: a JSON object of key telemetry arrays (altitudes, timestamps, battery temps, GPS/RC status, errors, etc.).
+                    2) `metrics`: a JSON object of precomputed stats (max/min values, loss events, flight time, etc.).
+
+                    Your task is to generate a full, detailed flight summary that:
+                    - Reports each core statistic (e.g. highest altitude and when, battery temperature extremes, total flight time, list of critical errors and their timestamps, first GPS loss, first RC signal loss).
+                    - Proactively answers investigatory questions such as “Are there any anomalies in this flight?” and “Can you spot any issues in the GPS data?”
+                    - Detects anomalies dynamically—look for sudden drops or spikes in altitude, voltage, or signal strength; inconsistent GPS fixes; error spikes; and other irregular patterns.
+                    - Explains your reasoning: hint at thresholds or patterns you observed (e.g. “Altitude dropped 15 m in 0.5 s at timestamp X, indicating a possible glitch”).
+                    - Does not simply apply rigid rules, but reasons flexibly about trends, outliers, and inconsistencies in the data.
+                    
+                    Here are the inputs:
+                    
+                    filtered_info:
+                    {json.dumps(filtered_info, indent=2)}
+
+                    metrics:
+                    {json.dumps(metrics, indent=2)}
+                    """
+
+    messages = [{"role": "system", "content": system_prompt}]
     
-    return {"session_id": session_id, "filtered_info": filtered_info}
+    resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+        )
+    summary = resp.choices[0].message.content.strip()
+    sess["summary"] = summary
+    
+    return {"session_id": session_id}
 
 
 @app.post("/chat")
@@ -170,26 +202,31 @@ async def chat(request: ChatRequest) -> Dict[str, Any]:
 
     user_msg = request.message
     lower = user_msg.lower()
-    metrics = sess.get("metrics", {})
 
-
-    # 2) Otherwise, fall back to LLM with a clear system prompt
-    summary = sess.get("filtered_info", "")
+    summary = sess.get("summary", "")
     history = sess.setdefault("history", [])
 
-    system_prompt = (
-        "You are a UAV log analyst.\n"
-        "Use the following pre-computed metrics and data to answer questions accurately:\n\n"
-        f"Metrics:\n{json.dumps(metrics, indent=2)}\n\n"
-        f"data:\n{json.dumps(summary, indent=2)}\n\n"
-        "If you can find the answer in the metrics, do so directly.\n"
-        "If you cannot, use the data to answer the question.\n"
-        "If the question is about a specific time, use the data to find the relevant point.\n"
-        "If the question is about a range of times, summarize the data for that range.\n"
-        "If the question is about a specific event, use the data to find it.\n"
-        "If the question is about a trend or pattern, summarize the data over time.\n"
-        "For investigative or anomaly questions, draw on the data and your expertise."
-    )
+    system_prompt = f"""
+                    You are a UAV telemetry analyst. Below is the human-readable summary of the flight, which contains all key stats and anomalies:
+
+                    {summary}
+
+                    When the user asks any of the following:
+                    - “What was the highest altitude reached during the flight?”
+                    - “When did the GPS signal first get lost?”
+                    - “What was the maximum battery temperature?”
+                    - “How long was the total flight time?”
+                    - “List all critical errors that happened mid-flight.”
+                    - “When was the first instance of RC signal loss?”
+                    - “Are there any anomalies in this flight?”
+                    - “Can you spot any issues in the GPS data?”
+
+                    Use the summary above to answer *directly* and *accurately*.  
+                    - For numeric/fact queries, pull the exact figure and timestamp from the summary.  
+                    - For anomaly or investigative queries, explain what in the summary indicates an anomaly (e.g., sudden drops, signal losses, error spikes).  
+
+                    If the question falls outside these, respond based on the information in the summary or admit you don’t have enough data.  
+                    """
 
     messages = [{"role": "system", "content": system_prompt}]
     # replay history
@@ -203,7 +240,7 @@ async def chat(request: ChatRequest) -> Dict[str, Any]:
         resp = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
-            max_tokens=500
+
         )
         reply = resp.choices[0].message.content.strip()
     except openai_error.OpenAIError as e:
