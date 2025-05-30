@@ -1,10 +1,3 @@
-# UAV Log Viewer
-
-![log seeking](preview.gif "Logo Title Text 1")
-
- This is a Javascript based log viewer for Mavlink telemetry and dataflash logs.
- [Live demo here](http://plot.ardupilot.org).
-
 # UAV Log Viewer Chatbot
 
 A conversational chatbot extension for UAV Log Viewer that allows users to ask questions about MAVLink, DataFlash, and DJI OSD telemetry logs. It provides deterministic metric-based answers for core flight statistics and uses a large language model (LLM) for investigative queries.
@@ -45,10 +38,8 @@ Backend (FastAPI)
 - Node.js ≥14 and npm/yarn
 - Python 3.9+ and virtualenv
 - OpenAI API key
-  
 ## Frontend Setup
-    You should first go to config/dev.env.js and add your CESIUM_ION_ACCESS_TOKEN
-    
+
     ```bash
     npm install
     # serve with hot reload at localhost:8080
@@ -116,5 +107,3 @@ Backend (FastAPI)
 | MAVLink   | `STATUSTEXT.text`                  | `status_texts`         |
 
 
-
-```
