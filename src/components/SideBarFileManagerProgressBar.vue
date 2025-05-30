@@ -1,5 +1,8 @@
 <template>
     <div class="progress1" v-bind:id="[percent > 99 ? 'hideMe' : '']">
+        <div class="processing-message">
+            🤖 AI is analyzing your flight data…
+        </div>
         <b-progress :max="100" height="30px">
             <b-progress-bar :value="percent">
                 <strong>{{ percent < 100 ? percent.toFixed(1): complete }}</strong>
@@ -30,6 +33,12 @@ export default {
         -webkit-transition: none;
         -o-transition: none;
         transition: none;
+    }
+    .processing-message {
+        margin-bottom: 8px;
+        font-size: 1.1rem;
+        color: #eee;
+        text-align: center;
     }
 
     #hideMe {

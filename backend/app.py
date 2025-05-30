@@ -93,11 +93,12 @@ def compute_metrics(filtered: Dict[str, Any]) -> Dict[str, Any]:
 
     # Flight time
     if "flight_time" in filtered:
-        metrics["flight_time"] = filtered.pop("flight_time")
+        metrics["flight_time(seconds)"] = filtered.pop("flight_time")
+        
     if "start_time_unix" in filtered:
         start_time = filtered["start_time_unix"][0][0]
         end_time = filtered["start_time_unix"][-1][0]
-        metrics["flight_time"] = end_time - start_time
+        metrics["flight_time(microseconds)"] = end_time - start_time
         filtered.pop("start_time_unix")
 
     # GPS loss info
