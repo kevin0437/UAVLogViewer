@@ -52,6 +52,7 @@ Backend (FastAPI)
     ```bash
     npm install
     # serve with hot reload at localhost:8080
+    git submodule update --init --recursive
     npm run dev
     ```
 
