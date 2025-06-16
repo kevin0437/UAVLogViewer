@@ -48,8 +48,8 @@ def find_useful_DataFlash(flat):
         "RC.downlinkSignal": "rc_downlink_signal",
         "RC.uplinkSignal": "rc_uplink_signal",
         # MAVLink keys
-        "GLOBAL_POSITION_INT.alt": "absolute_altitude_mm",
-        "GLOBAL_POSITION_INT.relative_alt": "relative_altitude_m",
+        "GLOBAL_POSITION_INT.alt": "absolute_altitude(Meter)",
+        "GLOBAL_POSITION_INT.relative_alt": "relative_altitude(Meter)",
         "GPS_RAW_INT.fix_type": "gps_fix_type",
         "SYSTEM_TIME.time_unix_usec": "start_time_unix",
         "RC_CHANNELS_RAW.rssi": "rc_signal_strength",
@@ -68,7 +68,7 @@ def compute_metrics(filtered: Dict[str, Any]) -> Dict[str, Any]:
     metrics: Dict[str, Any] = {}
 
     # Altitude: try GPS, then DJI, then MAVLink
-    alt_keys = ["gps_altitude", "altitude", "absolute_altitude_mm", "relative_altitude_m"]
+    alt_keys = ["gps_altitude", "altitude", "absolute_altitude(Meter)", "relative_altitude(Meter)"]
     time_map = {k: "gps_time" for k in alt_keys}
     for key in alt_keys:
         if key in filtered:
@@ -78,7 +78,7 @@ def compute_metrics(filtered: Dict[str, Any]) -> Dict[str, Any]:
             if alts:
                 max_alt = max(alts)
                 idx = alts.index(max_alt)
-                metrics[key] = max_alt if key != "absolute_altitude_mm" else max_alt / 1000
+                metrics[key] = max_alt if key != "absolute_altitude(Meter)" else max_alt / 1000
             break
 
     # Battery temperature extremes
@@ -93,12 +93,12 @@ def compute_metrics(filtered: Dict[str, Any]) -> Dict[str, Any]:
 
     # Flight time
     if "flight_time" in filtered:
-        metrics["flight_time(seconds)"] = filtered.pop("flight_time")
+        metrics["Total_flight_time(seconds)"] = filtered.pop("flight_time")
         
     if "start_time_unix" in filtered:
         start_time = filtered["start_time_unix"][0][0]
         end_time = filtered["start_time_unix"][-1][0]
-        metrics["flight_time(microseconds)"] = end_time - start_time
+        metrics["Total_flight_time(microseconds)"] = end_time - start_time
         filtered.pop("start_time_unix")
 
     # GPS loss info
@@ -167,12 +167,14 @@ async def upload_log(
                     2) `metrics`: a JSON object of precomputed stats (max/min values, loss events, flight time, etc.).
 
                     Your task is to generate a full, detailed flight summary that:
-                    - Reports each core statistic (e.g. highest altitude and when, battery temperature extremes, total flight time, list of critical errors and their timestamps, first GPS loss, first RC signal loss).
+                    - Reports each core statistic (e.g. absolute altitude and relative altitude and when(if possible), battery temperature extremes, total flight time, list of critical errors and their timestamps, first GPS loss, first RC signal loss).
                     - Proactively answers investigatory questions such as “Are there any anomalies in this flight?” and “Can you spot any issues in the GPS data?”
                     - Detects anomalies dynamically—look for sudden drops or spikes in altitude, voltage, or signal strength; inconsistent GPS fixes; error spikes; and other irregular patterns.
                     - Explains your reasoning: hint at thresholds or patterns you observed (e.g. “Altitude dropped 15 m in 0.5 s at timestamp X, indicating a possible glitch”).
                     - Does not simply apply rigid rules, but reasons flexibly about trends, outliers, and inconsistencies in the data.
                     
+                    The summary should be concise but thorough, covering all key aspects of the flight and any potential issues.
+                    Do not make things up, do not hallucinate, do not make assumptions about the data that are not present in the data.
                     Here are the inputs:
                     
                     filtered_info:
@@ -206,7 +208,9 @@ async def chat(request: ChatRequest) -> Dict[str, Any]:
 
     summary = sess.get("summary", "")
     history = sess.setdefault("history", [])
-
+    
+    print(summary)
+    
     system_prompt = f"""
                     You are a UAV telemetry analyst. Below is the human-readable summary of the flight, which contains all key stats and anomalies:
 
